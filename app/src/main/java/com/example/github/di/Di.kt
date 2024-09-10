@@ -2,13 +2,20 @@ package com.example.github.di
 
 import android.content.Context
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.lifecycleScope
+import androidx.room.Room
 import androidx.savedstate.SavedStateRegistryOwner
 import com.example.github.BuildConfig
 import com.example.github.domain.action.GetRepo
+import com.example.github.domain.action.SaveRepo
+import com.example.github.domain.repository.RepoExtendedRepository
 import com.example.github.domain.repository.RepoRepository
 import com.example.github.infra.client.RepoClient
+import com.example.github.infra.database.GithubDatabase
+import com.example.github.infra.database.dao.OwnerDAO
+import com.example.github.infra.database.dao.RepoDAO
+import com.example.github.infra.repository.RepoLocalRepository
 import com.example.github.infra.repository.RepoRemoteRepository
+import com.example.github.infra.services.RepoService
 import com.example.github.network.AuthInterceptor
 import com.example.github.network.isNetworkAvailable
 import com.example.github.ui.repos.ReposViewModelFactory
@@ -24,13 +31,29 @@ object Di {
         context: Context,
         owner: SavedStateRegistryOwner
     ): ViewModelProvider.Factory {
-        return ReposViewModelFactory(owner, provideGetRepo(context))
+        return ReposViewModelFactory(
+            owner,
+            provideRepoService(context),
+        )
     }
 
-    private fun provideGetRepo(context: Context) = GetRepo(provideRepoRepository(context))
+    private fun provideRepoService(context: Context) =
+        RepoService(context, provideGetRemoteRepo(context), provideGetLocalRepo(context), provideSaveRepo(context))
 
-    private fun provideRepoRepository(context: Context): RepoRepository {
+    private fun provideGetRemoteRepo(context: Context) =
+        GetRepo(provideRepoRemoteRepository(context))
+
+    private fun provideGetLocalRepo(context: Context) = GetRepo(provideRepoLocalRepository(context))
+
+    private fun provideSaveRepo(context: Context) = SaveRepo(provideRepoLocalRepository(context))
+
+    private fun provideRepoRemoteRepository(context: Context): RepoRepository {
         return RepoRemoteRepository(provideRepoClient(context))
+    }
+
+    private fun provideRepoLocalRepository(context: Context): RepoExtendedRepository {
+        val database = provideDatabase(context)
+        return RepoLocalRepository(provideRepoDao(database), provideOwnerDao(database))
     }
 
     private fun provideRepoClient(context: Context): RepoClient {
@@ -67,5 +90,20 @@ object Di {
             .addConverterFactory(MoshiConverterFactory.create())
             .client(okHttpClient)
             .build()
+    }
+
+    private fun provideDatabase(context: Context): GithubDatabase {
+        return Room.databaseBuilder(
+            context,
+            GithubDatabase::class.java, "github-database"
+        ).build()
+    }
+
+    private fun provideRepoDao(database: GithubDatabase): RepoDAO {
+        return database.repoDAO()
+    }
+
+    private fun provideOwnerDao(database: GithubDatabase): OwnerDAO {
+        return database.ownerDAO()
     }
 }

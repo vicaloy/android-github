@@ -54,7 +54,7 @@ private fun ReposList(repos: ImmutableList<Repo>, onSearch: (String) -> Unit, mo
 
         LazyColumn {
             items(count = repos.size) { index ->
-                Text(text = repos[index].id.toString(), modifier = Modifier.padding(16.dp))
+                Text(text = repos[index].name, modifier = Modifier.padding(16.dp))
             }
         }
     }

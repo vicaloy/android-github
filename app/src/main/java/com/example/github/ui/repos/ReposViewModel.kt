@@ -2,7 +2,9 @@ package com.example.github.ui.repos
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.github.domain.action.GetRepo
+import com.example.github.domain.model.Repo
+import com.example.github.infra.services.RepoService
+import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CancellationException
@@ -14,7 +16,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class ReposViewModel(
-    private val getRepo: GetRepo,
+    private val repoService: RepoService,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ViewModel() {
 
@@ -24,28 +26,40 @@ class ReposViewModel(
     fun getRepos(user: String) {
         viewModelScope.launch(dispatcher) {
             try {
-                _uiState.update {
-                    it.copy(
-                        hasError = false,
-                        isLoading = true,
-                        repos = persistentListOf()
-                    )
-                }
-                val repos = getRepo(user).toImmutableList()
-                _uiState.update {
-                    it.copy(
-                        hasError = false,
-                        isLoading = false,
-                        repos = repos
-                    )
-                }
+                setLoadingState()
+                val repos = repoService(user).toImmutableList()
+                setReposState(repos)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _uiState.update {
-                    it.copy(hasError = true, isLoading = false)
-                }
+                setErrorState()
             }
+        }
+    }
+
+    private fun setErrorState() {
+        _uiState.update {
+            it.copy(hasError = true, isLoading = false)
+        }
+    }
+
+    private fun setReposState(repos: ImmutableList<Repo>) {
+        _uiState.update {
+            it.copy(
+                hasError = false,
+                isLoading = false,
+                repos = repos
+            )
+        }
+    }
+
+    private fun setLoadingState() {
+        _uiState.update {
+            it.copy(
+                hasError = false,
+                isLoading = true,
+                repos = persistentListOf()
+            )
         }
     }
 }

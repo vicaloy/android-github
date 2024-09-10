@@ -7,3 +7,7 @@ interface RepoRepository {
 
     suspend fun findRepo(user: String, repo: String): Repo
 }
+
+interface RepoExtendedRepository : RepoRepository {
+    suspend fun saveAll(repos: List<Repo>)
+}

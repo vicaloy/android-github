@@ -1,5 +1,6 @@
 package com.example.github.infra.dto
 
+import com.example.github.domain.model.Owner
 import com.example.github.domain.model.Repo
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -13,7 +14,8 @@ data class RepoDTO(
     @Json(name = "full_name")
     val fullName: String,
     val private: Boolean,
-    val owner: Owner,
+    @Json(name = "owner")
+    val owner: OwnerDTO,
     @Json(name = "html_url")
     val htmlUrl: String,
     val description: Any?,
@@ -149,11 +151,11 @@ data class RepoDTO(
     val defaultBranch: String,
     val permissions: Permissions,
 ) {
-    fun mapToRepo() = Repo(id = id)
+    fun mapToRepo() = Repo(id = id, name = name, owner = owner.mapToOwner())
 }
 
 @JsonClass(generateAdapter = true)
-data class Owner(
+data class OwnerDTO(
     val login: String,
     val id: Long,
     @Json(name = "node_id")
@@ -186,7 +188,9 @@ data class Owner(
     val type: String,
     @Json(name = "site_admin")
     val siteAdmin: Boolean,
-)
+) {
+    fun mapToOwner() = Owner(login = login, id = id)
+}
 
 @JsonClass(generateAdapter = true)
 data class Permissions(
